@@ -1,115 +1,265 @@
-import requests
-from flask import Flask, request, jsonify, redirect
-import hashlib
-import random
+from flask import Flask, request, redirect, jsonify
 import datetime
-from urllib.parse import urlparse, parse_qs
-from cachetools import cached, TTLCache
-import os
-from dotenv import load_dotenv
-
-app = Flask(__name__)
-load_dotenv()
-
-def get_tarot_card(user_id):
-    tarot_cards = ["愚者", "魔术师", "女祭司", "皇后", "皇帝", "教皇", "恋人", "战车",
-                  "力量", "隐士", "命运之轮", "正义", "倒吊人", "死亡", "节制", "恶魔",
-                  "塔", "星星", "月亮", "太阳", "审判", "世界"]
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    combined = user_id + today
-    hash_value = int(hashlib.sha256(combined.encode()).hexdigest(), 16)
-    index = hash_value % len(tarot_cards)
-    return tarot_cards[index]
-
-@cached(cache=TTLCache(maxsize=1, ttl=5))
-def get_hitokoto():
-    response = requests.get('https://v1.hitokoto.cn/')
-    if response.status_code == 200:
-        data = response.json()
-        return data.get('hitokoto')
-    else:
-        return "获取一言失败"
-
+import hashlib
+import json
+import random
+import re
+app = Flask(name)
+============================
+GIF 动图配置（4张预留位置）
+============================
+GIF_KEYS = {
+'gif1': 'img_v3_0214p_92398d68-0ddb-4b09-a014-e4bb8943a6eg',
+'gif2': 'img_v3_0214p_9ebc03cd-31f6-481a-8292-f99e46a6365g',
+'gif3': 'img_v3_0214p_734e9aad-3d4e-4bbd-82b7-780566bb023g',
+'gif4': 'img_v3_0214p_02137fa4-7e15-462b-b9ad-cf490353ba2g',
+}
+默认图标（翻滚小猫）- 用于非GIF功能
+DEFAULT_IMAGE_KEY = 'img_v3_02gp_bc939d82-ad8d-4dd0-856d-c26e2d161b9g'
+============================
+自定义链接映射 - 填写你的抖音/其他链接
+============================
+CUSTOM_LINKS = {
+'d1': ('https://www.douyin.com/video/7542141165447367946', '🔥 点击查看本月绩效'),
+'d2': ('https://www.douyin.com', '🎵 音乐推荐'),
+'d3': ('https://www.douyin.com', '📱 我的主页'),
+}
+============================
+塔罗牌配置
+============================
+TAROT_CARDS = [
+'愚者', '魔术师', '女祭司', '皇后', '皇帝', '教皇', '恋人', '战车',
+'力量', '隐者', '命运之轮', '正义', '倒吊人', '死神', '节制', '恶魔',
+'塔', '星星', '月亮', '太阳', '审判', '世界'
+]
+============================
+一言金句库
+============================
+HITOKOTO_SENTENCES = [
+'星光不问赶路人，时光不负有心人。',
+'生活原本沉闷，但跑起来就有风。',
+'凡是过往，皆为序章。',
+'万物皆有裂痕，那是光照进来的地方。',
+'愿你出走半生，归来仍是少年。',
+'山高路远，看世界，也找自己。',
+'慢慢来，谁还没有一个努力的过程。',
+'保持热爱，奔赴山海。',
+'日子常新，未来不远。',
+'今天也是元气满满的一天！',
+'最好的时光，是你在我身边。',
+'心若向阳，无畏悲伤。',
+]
+============================
+时区工具：转换为北京时间 (UTC+8)
+============================
+def beijing_now():
+return datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+def beijing_date():
+return (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).date()
+============================
+飞书回调接口 - 核心
+============================
 @app.route('/api/handler', methods=['POST'])
 def lark_api_handler():
-    body = request.json
-    if app.debug:
-        print(body)
+data = request.get_json() or {}
+event = data.get('event', {})
+url = event.get('context', {}).get('url', '')
+path = ''
+if url:
+    match = re.search(r'caishuo\.work(/.*)?', url)
+    if match:
+        path = match.group(1) or '/'
 
-    # 回调验证
-    if body and body.get('type') == 'url_verification':
-        return jsonify({'challenge': body.get('challenge')})
+# 处理 url_verification
+if data.get('type') == 'url_verification':
+    return jsonify({'challenge': data.get('challenge', '')})
 
-    if body and body.get('header', {}).get('event_type') == 'url.preview.get':
-        user_id = body.get('event', {}).get('operator', {}).get('open_id')
-        if user_id:
-            url = body.get('event', {}).get('context', {}).get('url')
-            # 提取路径部分
-            parsed_url = urlparse(url)
-            path = parsed_url.path
-            if path == '/time':
-                inline_title = "当前时间是：" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            elif path == '/tarot':
-                tarot_card = get_tarot_card(user_id)
-                inline_title = "今天你的塔罗牌是：" + tarot_card
-            elif path == '/hitokoto':
-                inline_title = get_hitokoto()
-            elif path == '/weather':
-                # 从 URL 的查询参数中获取 city 信息
-                query_params = parse_qs(parsed_url.query)
-                city = query_params.get('city', [None])[0]
-                if city is None:
-                    city = '110000'
-                weather_info = query_weather(city)
-                if weather_info:
-                    inline_title = weather_info
-                else:
-                    inline_title = "获取天气失败"
-            else:
-                inline_title = "你好 Marscode"
-            return jsonify({
-                'inline': {
-                    'i18n_title': {
-                        'zh_cn': inline_title,
-                    },
-                    'image_key': 'img_v3_02gp_bc939d82-ad8d-4dd0-856d-c26e2d161b9g',
-                },
-            })
+# 处理链接预览
+if data.get('header', {}).get('event_type') == 'url.preview.get':
+    inline_title = 'caishuo.work'
+    image_key = ''
+
+    if path.startswith('/time'):
+        now = beijing_now()
+        week_days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+        week_day = week_days[now.weekday()]
+        inline_title = f"🕐 {now.strftime('%H:%M')} | {week_day}"
+        image_key = DEFAULT_IMAGE_KEY
+
+    elif path.startswith('/offwork'):
+        now = beijing_now()
+        today_18 = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        if now >= today_18:
+            tomorrow_18 = today_18 + datetime.timedelta(days=1)
+            delta = tomorrow_18 - now
+            hours = delta.seconds // 3600
+            minutes = (delta.seconds % 3600) // 60
+            inline_title = f"🎉 已下班！距明天18:00还有 {hours}小时{minutes}分"
         else:
-            return jsonify({'error': 'No user ID found'})
+            delta = today_18 - now
+            hours = delta.seconds // 3600
+            minutes = (delta.seconds % 3600) // 60
+            inline_title = f"⏳ 距下班还有 {hours}小时{minutes}分"
+        image_key = DEFAULT_IMAGE_KEY
 
-    return jsonify({})
+    elif path.startswith('/tarot'):
+        user_id = event.get('operator', {}).get('open_id', 'default')
+        today = beijing_date().strftime('%Y-%m-%d')
+        seed = hashlib.sha256(f'{user_id}-{today}'.encode()).hexdigest()
+        idx = int(seed, 16) % len(TAROT_CARDS)
+        card = TAROT_CARDS[idx]
+        inline_title = f"🔮 今日塔罗：{card}"
+        image_key = DEFAULT_IMAGE_KEY
 
+    elif path.startswith('/hitokoto'):
+        today = beijing_date().strftime('%Y-%m-%d')
+        idx = int(hashlib.sha256(today.encode()).hexdigest(), 16) % len(HITOKOTO_SENTENCES)
+        inline_title = f"💬 {HITOKOTO_SENTENCES[idx]}"
+        image_key = DEFAULT_IMAGE_KEY
+
+    elif path.startswith('/hello'):
+        hour = beijing_now().hour
+        if 5 <= hour < 12:
+            greeting = '早安'
+        elif 12 <= hour < 14:
+            greeting = '午安'
+        elif 14 <= hour < 18:
+            greeting = '下午好'
+        elif 18 <= hour < 22:
+            greeting = '晚上好'
+        else:
+            greeting = '夜深了'
+        inline_title = f"👋 {greeting}，蔡硕"
+        image_key = DEFAULT_IMAGE_KEY
+
+    elif path.startswith('/gif1'):
+        inline_title = ' '
+        image_key = GIF_KEYS.get('gif1', '')
+
+    elif path.startswith('/gif2'):
+        inline_title = ' '
+        image_key = GIF_KEYS.get('gif2', '')
+
+    elif path.startswith('/gif3'):
+        inline_title = ' '
+        image_key = GIF_KEYS.get('gif3', '')
+
+    elif path.startswith('/gif4'):
+        inline_title = ' '
+        image_key = GIF_KEYS.get('gif4', '')
+
+    elif path.startswith('/d') and len(path) >= 3 and path[2].isdigit():
+        code = path[1:3]
+        if code in CUSTOM_LINKS:
+            inline_title = CUSTOM_LINKS[code][1]
+            image_key = DEFAULT_IMAGE_KEY
+
+    elif path.startswith('/say/'):
+        text = path[5:]
+        try:
+            from urllib.parse import unquote
+            text = unquote(text)
+        except:
+            pass
+        inline_title = text[:30] if text else '自定义签名'
+        image_key = DEFAULT_IMAGE_KEY
+
+    elif path == '/' or path == '':
+        inline_title = '✨ 蔡硕的动态签名'
+        image_key = DEFAULT_IMAGE_KEY
+
+    response = {
+        'inline': {
+            'i18n_title': {
+                'zh_cn': inline_title
+            }
+        }
+    }
+    if image_key and not image_key.startswith('REPLACE'):
+        response['inline']['image_key'] = image_key
+
+    return jsonify(response)
+
+return jsonify({'code': 0})
+============================
+浏览器端路由
+============================
 @app.route('/time')
-def time():
-    return redirect('https://time.is/')
-
+def time_page():
+return redirect('https://time.is/')
+@app.route('/offwork')
+def offwork_page():
+now = beijing_now()
+today_18 = now.replace(hour=18, minute=0, second=0, microsecond=0)
+if now >= today_18:
+tomorrow_18 = today_18 + datetime.timedelta(days=1)
+delta = tomorrow_18 - now
+hours = delta.seconds // 3600
+minutes = (delta.seconds % 3600) // 60
+return f'
+🎉 已经下班啦！
+距离明天18:00还有 {hours}小时{minutes}分
+'
+else:
+delta = today_18 - now
+hours = delta.seconds // 3600
+minutes = (delta.seconds % 3600) // 60
+return f'
+⏳ 距下班还有 {hours}小时{minutes}分
+'
 @app.route('/tarot')
-def tarot():
-    return redirect('https://tarotap.com/zh/card_meanings')
-
+def tarot_page():
+return redirect('https://tarotap.com/')
 @app.route('/hitokoto')
-def hitokoto_redirect():
-    return redirect('https://hitokoto.cn/')
-
+def hitokoto_page():
+return redirect('https://hitokoto.cn/')
+@app.route('/hello')
+def hello_page():
+return '
+👋 你好，欢迎来到蔡硕的动态签名服务
+'
+@app.route('/gif1')
+def gif1_page():
+return '
+🎬 GIF 1
+'
+@app.route('/gif2')
+def gif2_page():
+return '
+🎬 GIF 2
+'
+@app.route('/gif3')
+def gif3_page():
+return '
+🎬 GIF 3
+'
+@app.route('/gif4')
+def gif4_page():
+return '
+🎬 GIF 4
+'
+@app.route('/d')
+def custom_link_page(code):
+key = f'd{code}'
+if key in CUSTOM_LINKS:
+return redirect(CUSTOM_LINKS[key][0])
+return redirect('https://caishuo.work/')
+@app.route('/say/')
+def say_page(text):
+from urllib.parse import unquote
+try:
+text = unquote(text)
+except:
+pass
+return f'
+{text}
+'
 @app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@app.route('/path:path')
 def catch_all(path):
-    return redirect('https://www.marscode.cn/')
-
-def query_weather(city):
-    # 假设高德天气 API 的 key 存储在环境变量中
-    api_key = os.getenv('AMAP_WEATHER_API_KEY')
-    # 构建请求 URL
-    url = f"https://restapi.amap.com/v3/weather/weatherInfo?key={api_key}&city={city}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        weather_data = response.json()
-        # 假设提取天气信息的逻辑，根据高德天气 API 的实际响应结构调整
-        city_name = weather_data.get('lives')[0].get('city')
-        weather_info = weather_data.get('lives')[0].get('weather')
-        # 构建新的返回格式
-        result = f"【{city_name}】今天的天气：【{weather_info}】"
-        return result
-    else:
-        return None
+return '
+✨ 蔡硕的动态签名服务
+支持：/time /offwork /tarot /hitokoto /hello /gif1~/gif4 /say/文字 /d1~/d3
+'
+if name == 'main':
+app.run(debug=True)
