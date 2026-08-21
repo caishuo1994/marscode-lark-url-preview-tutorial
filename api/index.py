@@ -23,9 +23,9 @@ DEFAULT_IMAGE_KEY = 'img_v3_02gp_bc939d82-ad8d-4dd0-856d-c26e2d161b9g'
 # 自定义链接映射
 # ============================
 CUSTOM_LINKS = {
-    'd1': ('https://www.douyin.com', '🔥 抖音热门'),
-    'd2': ('https://www.douyin.com', '🎵 音乐推荐'),
-    'd3': ('https://www.douyin.com', '📱 我的主页'),
+    'd1': ('https://www.douyin.com/video/7669403253999182218', '🔥 点击查看本月绩效'),
+    'd2': ('https://www.douyin.com/video/7462354119198608700', '🎵 点击此处扣除郑雨阳本月全部绩效'),
+    'd3': ('https://www.douyin.com/video/7483284135268732199', '📱 点击此处带你旅行'),
 }
 
 # ============================
