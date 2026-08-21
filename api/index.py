@@ -10,9 +10,9 @@ app = Flask(__name__)
 # GIF 动图配置（4张已替换）
 # ============================
 GIF_KEYS = {
-    'gif1': 'img_v3_02gp_bc939d82-ad8d-4dd0-856d-c26e2d161b9g',
-    'gif2': 'img_v3_0214p_9ebc03cd-31f6-481a-8292-f99e46a6365g',
-    'gif3': 'img_v3_0214p_734e9aad-3d4e-4bbd-82b7-780566bb023g',
+    'gif1': 'img_v3_0214p_37ca558c-0925-49dc-88eb-ea7289e27b0g',
+    'gif2': 'img_v3_0214p_a24e9f63-fe2d-4fd0-b2cc-340237d2271g',
+    'gif3': 'mg_v3_0214p_a7517d79-d8d6-4c76-9583-a1f0a01e429g',
     'gif4': 'img_v3_0214p_02137fa4-7e15-462b-b9ad-cf490353ba2g',
 }
 
