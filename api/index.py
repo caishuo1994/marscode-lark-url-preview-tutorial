@@ -16,16 +16,16 @@ GIF_KEYS = {
     'gif4': 'img_v3_0214s_6f96c0d6-3b2c-437b-bcd1-44574ff4b7ag',
 }
 
-# 默认图标（翻滚小猫）
+# 默认图标（加载中）
 DEFAULT_IMAGE_KEY = 'img_v3_0214s_67cf2b4e-ce7c-41e7-94f2-48e0fb056cfg'
 
 # ============================
 # 自定义链接映射
 # ============================
 CUSTOM_LINKS = {
-    'd1': ('https://www.douyin.com/video/7669403253999182218', '🔥 点击查看本月绩效'),
-    'd2': ('https://www.douyin.com/video/7462354119198608700', '🎵 点击此处扣除郑雨阳本月全部绩效'),
-    'd3': ('https://www.douyin.com/video/7483284135268732199', '📱 点击此处带你旅行'),
+    'd1': ('https://www.douyin.com/video/7598860026035380454', '查看当前工作状态'),
+    'd2': ('https://www.douyin.com/video/7574824840138598565', '查看郑雨阳审核回放'),
+    'd3': ('https://www.douyin.com/video/7596097269067724773', '点击领取十天年假'),
 }
 
 # ============================
@@ -141,7 +141,7 @@ def lark_api_handler():
                 greeting = '晚上好'
             else:
                 greeting = '夜深了'
-            inline_title = f"👋 {greeting}，蔡硕"
+            inline_title = f"👋 {greeting}，"
             image_key = DEFAULT_IMAGE_KEY
         
         elif path.startswith('/gif1'):
@@ -177,7 +177,7 @@ def lark_api_handler():
             image_key = DEFAULT_IMAGE_KEY
         
         elif path == '/' or path == '':
-            inline_title = '✨ 蔡硕的动态签名'
+            inline_title = '✨ 蔡硕的链接预览服务'
             image_key = DEFAULT_IMAGE_KEY
         
         response = {
@@ -228,7 +228,7 @@ def hitokoto_page():
 
 @app.route('/hello')
 def hello_page():
-    return '<h1>👋 你好，欢迎来到蔡硕的动态签名服务</h1>'
+    return '<h1>👋 你好，欢迎来到蔡硕的链接预览服务</h1>'
 
 @app.route('/gif1')
 def gif1_page():
@@ -265,7 +265,7 @@ def say_page(text):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
-    return '<h1>✨ 蔡硕的动态签名服务</h1><p>支持：/time /offwork /tarot /hitokoto /hello /gif1~/gif4 /say/文字 /d1~/d3</p >'
+    return '<h1>✨ 蔡硕的链接预览服务</h1><p>支持：/time /offwork /tarot /hitokoto /hello /gif1~/gif4 /say/文字 /d1~/d3</p >'
 
 
 if __name__ == '__main__':
