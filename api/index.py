@@ -10,16 +10,14 @@ app = Flask(__name__)
 # GIF 动图配置（4张已替换）
 # ============================
 GIF_KEYS = {
-    'gif1': 'img_v3_0214s_98a77b14-3eeb-4e8f-8b16-80009a371dbg',
-    'gif2': 'img_v3_0214s_67cf2b4e-ce7c-41e7-94f2-48e0fb056cfg',
-    'gif3': 'img_v3_0214s_e2def39a-b040-4cab-b8c3-0bef3b66e55g',
-    'gif4': 'img_v3_0214s_17a5b761-cc33-443d-b977-919e02f8498g',
-    'gif5': 'img_v3_0214s_1462c9b5-3ec6-4a27-abb2-5ee62a05c8dg',
-    'gif6': 'img_v3_0214s_6f96c0d6-3b2c-437b-bcd1-44574ff4b7ag',
+    'gif1': 'img_v3_0214s_e2def39a-b040-4cab-b8c3-0bef3b66e55g',
+    'gif2': 'img_v3_0214s_17a5b761-cc33-443d-b977-919e02f8498g',
+    'gif3': 'img_v3_0214s_1462c9b5-3ec6-4a27-abb2-5ee62a05c8dg',
+    'gif4': 'img_v3_0214s_6f96c0d6-3b2c-437b-bcd1-44574ff4b7ag',
 }
 
 # 默认图标（翻滚小猫）
-DEFAULT_IMAGE_KEY = 'img_v3_02gp_bc939d82-ad8d-4dd0-856d-c26e2d161b9g'
+DEFAULT_IMAGE_KEY = 'img_v3_0214s_67cf2b4e-ce7c-41e7-94f2-48e0fb056cfg'
 
 # ============================
 # 自定义链接映射
