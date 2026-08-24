@@ -24,7 +24,7 @@ DEFAULT_IMAGE_KEY = 'img_v3_0214s_67cf2b4e-ce7c-41e7-94f2-48e0fb056cfg'
 # ============================
 CUSTOM_LINKS = {
     'd1': ('https://www.douyin.com/video/7598860026035380454', '查看当前工作状态'),
-    'd2': ('https://www.douyin.com/video/7574824840138598565', '查看郑雨阳审核回放'),
+    'd2': ('https://www.douyin.com/video/7574824840138598565', '查看郑雨阳审核状态回放'),
     'd3': ('https://www.douyin.com/video/7596097269067724773', '点击领取十天年假'),
 }
 
