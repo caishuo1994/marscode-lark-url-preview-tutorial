@@ -1,6 +1,8 @@
 {
   "routes": [
-    { "src": "/alarm(/.*)?", "dest": "/alarm$1" },
+    { "src": "/alarm", "dest": "/alarm/index.html" },
+    { "src": "/alarm/", "dest": "/alarm/index.html" },
+    { "src": "/alarm/(.*)", "dest": "/alarm/$1" },
     { "src": "/(.*)", "dest": "/api/index.py" }
   ]
 }
