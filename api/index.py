@@ -22,7 +22,16 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+supabase = None
+supabase_error = None
+try:
+    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    else:
+        supabase_error = "SUPABASE_URL 或 SUPABASE_SERVICE_KEY 环境变量未配置"
+except Exception as e:
+    supabase_error = f"Supabase 初始化失败: {str(e)}"
+    print(f"[WARNING] {supabase_error}")
 
 
 # ============================
@@ -694,6 +703,8 @@ def get_file_extension(filename):
 @app.route('/api/ringtones', methods=['GET'])
 def get_ringtones():
     """获取所有已审核通过的铃声列表"""
+    if supabase is None:
+        return jsonify({'success': False, 'error': supabase_error or 'Supabase 未初始化'}), 500
     try:
         response = supabase.table('ringtones')\
             .select('*')\
