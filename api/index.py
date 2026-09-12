@@ -3,6 +3,9 @@ import datetime
 import hashlib
 import random
 import re
+import os
+import uuid
+import base64
 
 app = Flask(__name__)
 
@@ -11,7 +14,6 @@ app = Flask(__name__)
 # ============================
 from supabase import create_client, Client
 
-app = Flask(__name__)
 
 # ============================
 # Supabase 配置
