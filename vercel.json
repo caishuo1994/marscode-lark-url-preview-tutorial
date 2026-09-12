@@ -1,8 +1,5 @@
 {
-  "routes": [
-    { "src": "/alarm", "dest": "/alarm/index.html" },
-    { "src": "/alarm/", "dest": "/alarm/index.html" },
-    { "src": "/alarm/(.*)", "dest": "/alarm/$1" },
-    { "src": "/(.*)", "dest": "/api/index.py" }
+  "rewrites": [
+    { "source": "/:path*", "destination": "/api/index.py" }
   ]
 }
