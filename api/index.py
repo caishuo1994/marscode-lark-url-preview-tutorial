@@ -595,32 +595,196 @@ def alarm_page():
     possible_paths = [
         os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm.html'),
         '/var/task/api/alarm.html',
-        '/var/task/alarm.html',
         'api/alarm.html',
-        'alarm.html',
     ]
-    debug_info = []
-    debug_info.append(f'cwd: {os.getcwd()}')
-    debug_info.append(f'__file__: {os.path.abspath(__file__)}')
     for path in possible_paths:
-        exists = os.path.exists(path)
-        debug_info.append(f'{path} -> {exists}')
-        if exists:
+        if os.path.exists(path):
             try:
                 with open(path, 'r', encoding='utf-8') as f:
                     return f.read()
-            except Exception as e:
-                debug_info.append(f'  read error: {e}')
-    try:
-        debug_info.append('')
-        debug_info.append('files in cwd:')
-        for f in os.listdir('.'):
-            debug_info.append(f'  {f}')
-    except: pass
-    debug_html = '<h1>Alarm Debug</h1><pre style="background:#f0f0f0;padding:15px;">' + '\n'.join(debug_info) + '</pre>'
-    return debug_html
+            except:
+                continue
+    return '<h1>⏰ 闹钟网站</h1><p>正在加载中...</p>'
 
 # ============================
+
+# ============================
+# Supabase 后端存储配置
+# ============================
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError as e:
+    SUPABASE_AVAILABLE = False
+    SUPABASE_IMPORT_ERROR = str(e)
+    print(f"[WARNING] supabase 库导入失败: {e}")
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+supabase = None
+supabase_error = None
+if SUPABASE_AVAILABLE and SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    except Exception as e:
+        supabase_error = f"Supabase 初始化失败: {str(e)}"
+        print(f"[WARNING] {supabase_error}")
+elif not SUPABASE_AVAILABLE:
+    supabase_error = f"supabase 库未安装: {SUPABASE_IMPORT_ERROR}"
+else:
+    supabase_error = "SUPABASE_URL 或 SUPABASE_SERVICE_KEY 环境变量未配置"
+
+print(f"[INFO] Supabase 状态: {'可用' if supabase else '不可用 - ' + str(supabase_error)}")
+
+
+# ============================
+# 铃声后端 API
+# ============================
+@app.route('/api/ringtones', methods=['GET'])
+def get_ringtones():
+    """获取已审核通过的铃声列表"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置', 'detail': supabase_error}), 500
+    try:
+        result = supabase.table('ringtones').select('*').eq('status', 'approved').order('created_at', desc=True).execute()
+        return jsonify({'success': True, 'data': result.data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/pending', methods=['GET'])
+def get_pending_ringtones():
+    """获取待审核的铃声列表（管理员）"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': '无权限'}), 403
+    try:
+        result = supabase.table('ringtones').select('*').eq('status', 'pending').order('created_at', desc=True).execute()
+        return jsonify({'success': True, 'data': result.data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/upload', methods=['POST'])
+def upload_ringtone():
+    """上传铃声（状态为 pending，等待审核）"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        audio_data = data.get('audio_data', '')
+        cover_data = data.get('cover_data', '')
+        uploader_name = data.get('uploader_name', '匿名用户').strip()
+        
+        if not name or not audio_data or not cover_data:
+            return jsonify({'error': '铃声名称、音频和封面都不能为空'}), 400
+        
+        # 上传音频到存储
+        import uuid
+        file_id = str(uuid.uuid4())
+        audio_path = f'audio/{file_id}.mp3'
+        cover_path = f'cover/{file_id}.jpg'
+        
+        # 解码 base64 并上传
+        import base64
+        audio_bytes = base64.b64decode(audio_data.split(',')[-1])
+        cover_bytes = base64.b64decode(cover_data.split(',')[-1])
+        
+        supabase.storage.from_('ringtones').upload(audio_path, audio_bytes, {'content-type': 'audio/mpeg'})
+        supabase.storage.from_('ringtones').upload(cover_path, cover_bytes, {'content-type': 'image/jpeg'})
+        
+        # 获取公开 URL
+        audio_url = supabase.storage.from_('ringtones').get_public_url(audio_path)
+        cover_url = supabase.storage.from_('ringtones').get_public_url(cover_path)
+        
+        # 插入数据库
+        result = supabase.table('ringtones').insert({
+            'name': name,
+            'audio_url': audio_url,
+            'cover_url': cover_url,
+            'uploader_name': uploader_name,
+            'status': 'pending',
+            'plays': 0
+        }).execute()
+        
+        return jsonify({'success': True, 'message': '上传成功，等待管理员审核', 'data': result.data[0]})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/approve', methods=['POST'])
+def approve_ringtone():
+    """管理员审核通过"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': '无权限'}), 403
+    try:
+        data = request.get_json()
+        ringtone_id = data.get('id')
+        if not ringtone_id:
+            return jsonify({'error': '缺少铃声ID'}), 400
+        result = supabase.table('ringtones').update({'status': 'approved'}).eq('id', ringtone_id).execute()
+        return jsonify({'success': True, 'data': result.data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/reject', methods=['POST'])
+def reject_ringtone():
+    """管理员拒绝"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': '无权限'}), 403
+    try:
+        data = request.get_json()
+        ringtone_id = data.get('id')
+        if not ringtone_id:
+            return jsonify({'error': '缺少铃声ID'}), 400
+        result = supabase.table('ringtones').update({'status': 'rejected'}).eq('id', ringtone_id).execute()
+        return jsonify({'success': True, 'data': result.data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/delete', methods=['POST'])
+def delete_ringtone():
+    """管理员删除"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': '无权限'}), 403
+    try:
+        data = request.get_json()
+        ringtone_id = data.get('id')
+        if not ringtone_id:
+            return jsonify({'error': '缺少铃声ID'}), 400
+        result = supabase.table('ringtones').delete().eq('id', ringtone_id).execute()
+        return jsonify({'success': True, 'data': result.data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ringtones/stats', methods=['GET'])
+def get_ringtone_stats():
+    """获取统计信息"""
+    if not supabase:
+        return jsonify({'error': '后端存储未配置'}), 500
+    try:
+        approved = supabase.table('ringtones').select('id', count='exact').eq('status', 'approved').execute()
+        pending = supabase.table('ringtones').select('id', count='exact').eq('status', 'pending').execute()
+        return jsonify({
+            'success': True,
+            'approved_count': approved.count if hasattr(approved, 'count') else len(approved.data),
+            'pending_count': pending.count if hasattr(pending, 'count') else len(pending.data)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # 浏览器端路由
 # ============================
 @app.route('/time')
