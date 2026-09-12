@@ -591,21 +591,34 @@ def lark_api_handler():
 # ============================
 @app.route('/alarm')
 def alarm_page():
+    import os
+    possible_paths = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm.html'),
+        '/var/task/api/alarm.html',
+        '/var/task/alarm.html',
+        'api/alarm.html',
+        'alarm.html',
+    ]
+    debug_info = []
+    debug_info.append(f'cwd: {os.getcwd()}')
+    debug_info.append(f'__file__: {os.path.abspath(__file__)}')
+    for path in possible_paths:
+        exists = os.path.exists(path)
+        debug_info.append(f'{path} -> {exists}')
+        if exists:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except Exception as e:
+                debug_info.append(f'  read error: {e}')
     try:
-        import os
-        # 尝试读取 public/alarm/index.html
-        alarm_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'public', 'alarm', 'index.html')
-        if os.path.exists(alarm_path):
-            with open(alarm_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        # 备选路径
-        alarm_path2 = '/var/task/public/alarm/index.html'
-        if os.path.exists(alarm_path2):
-            with open(alarm_path2, 'r', encoding='utf-8') as f:
-                return f.read()
-        return '<h1>闹钟网站加载中...</h1><p>如果长时间未显示，请刷新页面。</p>'
-    except Exception as e:
-        return f'<h1>闹钟网站加载失败</h1><p>错误: {str(e)}</p>'
+        debug_info.append('')
+        debug_info.append('files in cwd:')
+        for f in os.listdir('.'):
+            debug_info.append(f'  {f}')
+    except: pass
+    debug_html = '<h1>Alarm Debug</h1><pre style="background:#f0f0f0;padding:15px;">' + '\n'.join(debug_info) + '</pre>'
+    return debug_html
 
 # ============================
 # 浏览器端路由
