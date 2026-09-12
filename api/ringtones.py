@@ -33,7 +33,7 @@ def get_file_extension(filename):
 # API 路由
 # ============================
 
-@app.route('/api/ringtones', methods=['GET'])
+@app.route('/', methods=['GET'])
 def get_ringtones():
     """获取所有已审核通过的铃声列表"""
     try:
@@ -54,7 +54,7 @@ def get_ringtones():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/pending', methods=['GET'])
+@app.route('/pending', methods=['GET'])
 def get_pending_ringtones():
     """获取待审核的铃声列表（管理员）"""
     if not is_admin(request):
@@ -81,7 +81,7 @@ def get_pending_ringtones():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/upload', methods=['POST'])
+@app.route('/upload', methods=['POST'])
 def upload_ringtone():
     """上传铃声（音频+封面+名称）"""
     try:
@@ -160,7 +160,7 @@ def upload_ringtone():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/approve', methods=['POST'])
+@app.route('/approve', methods=['POST'])
 def approve_ringtone():
     """管理员审核通过铃声"""
     if not is_admin(request):
@@ -194,7 +194,7 @@ def approve_ringtone():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/reject', methods=['POST'])
+@app.route('/reject', methods=['POST'])
 def reject_ringtone():
     """管理员拒绝铃声"""
     if not is_admin(request):
@@ -229,7 +229,7 @@ def reject_ringtone():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/delete', methods=['POST'])
+@app.route('/delete', methods=['POST'])
 def delete_ringtone():
     """管理员删除铃声"""
     if not is_admin(request):
@@ -284,7 +284,7 @@ def delete_ringtone():
             'error': str(e)
         }), 500
 
-@app.route('/api/ringtones/stats', methods=['GET'])
+@app.route('/stats', methods=['GET'])
 def get_stats():
     """获取铃声统计信息"""
     try:
