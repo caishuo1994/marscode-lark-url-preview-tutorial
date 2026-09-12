@@ -3776,6 +3776,9 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
         html += '</div>';
         html += '<div class="ur-actions">';
         html += '<button class="ur-btn play" onclick="selectServerRingtone(\'' + rt.id + '\')">使用</button>';
+        if (isAdmin) {
+          html += '<button class="ur-btn del" onclick="deleteServerRingtone(\'' + rt.serverId + '\', \'' + escapeHtml(rt.name).replace(/'/g, "\\'") + '\')">删除</button>';
+        }
         html += '</div></div>';
       }
     }
@@ -3796,6 +3799,31 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     renderUserRingtones();
     const ps = document.getElementById('premiumSelect');
     if (ps) ps.value = 'custom';
+  }
+
+  // ===== 管理员：删除已审核铃声 =====
+  async function deleteServerRingtone(id, name) {
+    if (!confirm('确定删除铃声「' + name + '」吗？删除后无法恢复。')) return;
+    try {
+      const response = await fetch(API_BASE + '/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': getAdminPassword()
+        },
+        body: JSON.stringify({ id: id })
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert('已删除铃声「' + name + '」');
+        await loadServerRingtones();
+        renderUserRingtones();
+      } else {
+        alert('删除失败：' + (result.error || '未知错误'));
+      }
+    } catch(e) {
+      alert('删除失败：' + e.message);
+    }
   }
 
   function escapeHtml(text) {
