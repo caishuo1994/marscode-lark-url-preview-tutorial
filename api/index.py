@@ -650,7 +650,7 @@ def redis_set(key, value):
 def redis_delete(key):
     """删除数据"""
     url = f'{KV_REST_API_URL}/del/{key}'
-    resp = redis_requests.delete(url, headers=redis_headers(), timeout=10)
+    resp = redis_requests.post(url, headers=redis_headers(), timeout=10)
     resp.raise_for_status()
     return resp.json()
 
