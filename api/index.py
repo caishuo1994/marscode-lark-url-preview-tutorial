@@ -644,14 +644,35 @@ print(f"[INFO] Supabase 状态: {'可用' if supabase else '不可用 - ' + str(
 # ============================
 @app.route('/api/ringtones', methods=['GET'])
 def get_ringtones():
-    """获取已审核通过的铃声列表"""
+    """获取已审核通过的铃声列表（诊断版）"""
+    import os
+    debug = {}
+    debug['supabase_available'] = SUPABASE_AVAILABLE
+    debug['supabase_error'] = str(supabase_error) if supabase_error else None
+    debug['supabase_object'] = str(supabase) if supabase else None
+    debug['SUPABASE_URL_set'] = bool(SUPABASE_URL)
+    debug['SUPABASE_URL_prefix'] = SUPABASE_URL[:20] + '...' if SUPABASE_URL else None
+    debug['SUPABASE_SERVICE_KEY_set'] = bool(SUPABASE_SERVICE_KEY)
+    debug['SUPABASE_SERVICE_KEY_prefix'] = SUPABASE_SERVICE_KEY[:20] + '...' if SUPABASE_SERVICE_KEY else None
+    debug['ADMIN_PASSWORD_set'] = bool(ADMIN_PASSWORD)
+    
     if not supabase:
-        return jsonify({'error': '后端存储未配置', 'detail': supabase_error}), 500
+        debug['error'] = 'supabase 对象为空'
+        return jsonify(debug), 500
+    
     try:
-        result = supabase.table('ringtones').select('*').eq('status', 'approved').order('created_at', desc=True).execute()
-        return jsonify({'success': True, 'data': result.data})
+        # 测试简单查询
+        debug['attempting_query'] = True
+        result = supabase.table('ringtones').select('id').limit(1).execute()
+        debug['query_success'] = True
+        debug['result_count'] = len(result.data) if result.data else 0
+        return jsonify(debug)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        debug['query_error'] = str(e)
+        debug['error_type'] = type(e).__name__
+        import traceback
+        debug['traceback'] = traceback.format_exc()[:500]
+        return jsonify(debug), 500
 
 @app.route('/api/ringtones/pending', methods=['GET'])
 def get_pending_ringtones():
