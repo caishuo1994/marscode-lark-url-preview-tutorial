@@ -12,7 +12,18 @@ app = Flask(__name__)
 # ============================
 # Supabase 后端存储配置
 # ============================
-from supabase import create_client, Client
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError as e:
+    SUPABASE_AVAILABLE = False
+    SUPABASE_IMPORT_ERROR = str(e)
+    print(f"[WARNING] supabase 库导入失败: {e}")
+    # 定义占位符
+    class Client:
+        pass
+    def create_client(*args, **kwargs):
+        return None
 
 
 # ============================
@@ -24,14 +35,17 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 supabase = None
 supabase_error = None
-try:
-    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
-        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    else:
-        supabase_error = "SUPABASE_URL 或 SUPABASE_SERVICE_KEY 环境变量未配置"
-except Exception as e:
-    supabase_error = f"Supabase 初始化失败: {str(e)}"
-    print(f"[WARNING] {supabase_error}")
+if not SUPABASE_AVAILABLE:
+    supabase_error = f"supabase 库未安装: {SUPABASE_IMPORT_ERROR}"
+else:
+    try:
+        if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+            supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        else:
+            supabase_error = "SUPABASE_URL 或 SUPABASE_SERVICE_KEY 环境变量未配置"
+    except Exception as e:
+        supabase_error = f"Supabase 初始化失败: {str(e)}"
+        print(f"[WARNING] {supabase_error}")
 
 
 # ============================
