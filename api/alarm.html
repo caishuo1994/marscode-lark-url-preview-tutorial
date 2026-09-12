@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -605,10 +605,17 @@
         <div class="submit-review-area" style="background:rgba(74,144,217,0.06);border:1px solid rgba(74,144,217,0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
           <div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:6px;">📤 如何让我的铃声被其他人使用？</div>
           <div style="font-size:12px;color:#666;line-height:1.7;">
-            1. 上传铃声后，在下方列表中点击「申请分享」按钮<br>
-            2. 按提示将<strong>音频文件</strong>和<strong>封面图片</strong>发送给管理员审核<br>
-            3. 管理员审核通过后，铃声会添加到上方「社区铃声」库中<br>
-            4. 其他人打开应用即可在「社区铃声」中看到并直接使用
+            1. 上传铃声后，系统会自动提交给管理员审核<br>
+            2. 管理员审核通过后，铃声会自动添加到上方「社区铃声」库中<br>
+            3. 其他人打开网站即可在「社区铃声」中看到并直接使用<br>
+            4. 所有铃声数据存储在云端，跨设备同步，刷新不丢失
+          </div>
+          <div class="admin-entry" style="text-align:center;margin-top:12px;">
+            <button onclick="enterAdminMode()" style="background:none;border:none;color:#ccc;font-size:11px;cursor:pointer;padding:4px;">⚙️ 管理员审核入口</button>
+          </div>
+          <div id="adminReviewSection" style="display:none;margin-top:16px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;">
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:10px;">🔧 管理员审核面板</div>
+            <div id="pendingReviewList" style="font-size:12px;color:#666;">加载中...</div>
           </div>
         </div>
 
@@ -3429,8 +3436,8 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
           id: 'srv_' + item.id,
           serverId: item.id,
           name: item.name,
-          audioSrc: item.audio_url,
-          imageSrc: item.cover_url || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIj7wn5C3PC90ZXh0Pjwvc3ZnPg==',
+          audioSrc: item.audio_data || item.audio_url,
+          imageSrc: item.cover_data || item.cover_url || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIj7wn5C3PC90ZXh0Pjwvc3ZnPg==',
           uploaderName: item.uploader_name || '匿名用户',
           uploadTime: new Date(item.created_at).getTime(),
           status: 'approved',
@@ -3665,8 +3672,8 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name,
-          audio: audioBase64,
-          cover: imageBase64,
+          audio_data: audioBase64,
+          cover_data: imageBase64,
           uploader_name: '匿名用户'
         })
       });
@@ -3859,16 +3866,14 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     if (!rt) return;
     showModal('📤 申请分享铃声「' + escapeHtml(rt.name) + '」',
       '<p style="font-size:13px;color:#666;margin-bottom:10px;line-height:1.7">' +
-      '请按以下步骤申请分享：<br><br>' +
-      '<strong>1. 准备文件</strong><br>' +
-      '将你的<strong>原始音频文件</strong>和<strong>原始封面图片</strong>准备好<br><br>' +
-      '<strong>2. 发送给管理员</strong><br>' +
-      '通过飞书消息或邮件将音频文件+图片文件+铃声名称发送给管理员<br><br>' +
-      '<strong>3. 管理员审核</strong><br>' +
-      '管理员审核通过后，会将铃声添加到「社区铃声」库中<br><br>' +
-      '<strong>4. 所有人可用</strong><br>' +
-      '其他人打开应用即可在「社区铃声」中看到并直接使用<br><br>' +
-      '<span style="color:#e67e22;font-size:12px;">⚠️ 注意：由于音频文件较大，无法通过聊天消息直接发送编码，请发送原始文件。</span>' +
+      '上传后系统会自动提交给管理员审核：<br><br>' +
+      '<strong>1. 自动提交</strong><br>' +
+      '上传铃声后，系统会自动将铃声提交给管理员审核<br><br>' +
+      '<strong>2. 管理员审核</strong><br>' +
+      '管理员在审核入口查看待审核铃声，点击「通过」或「拒绝」<br><br>' +
+      '<strong>3. 所有人可用</strong><br>' +
+      '审核通过后，铃声会自动添加到「社区铃声」库中<br><br>' +
+      '<span style="color:#27ae60;font-size:12px;">✅ 所有数据存储在云端，跨设备同步，刷新不丢失！</span>' +
       '</p>' +
       '<button class="modal-btn" onclick="closeModal()">我知道了</button>'
     );
@@ -3901,11 +3906,9 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
       image: rt.imageSrc
     };
     const code = encodeShareCode(data);
-    showModal('📝 待审核码（发给管理员审核）',
-      '<p style="font-size:13px;color:#666;margin-bottom:10px;line-height:1.6">铃声「' + escapeHtml(rt.name) + '」上传成功！待审核码已生成。<br><br>请复制下方待审核码，发送给管理员审核。管理员审核通过后会返回正式分享码，其他人导入正式分享码即可使用同款铃声+图片组合。<br><br>你现在就可以在列表中点击「使用」按钮试听该铃声。</p>' +
-      '<textarea id="shareCodeText" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:10px;box-sizing:border-box;resize:vertical;min-height:100px;font-family:monospace;" readonly>' + code + '</textarea>' +
-      '<button class="modal-btn" style="margin-top:10px" onclick="copyShareCode()">复制待审核码</button>' +
-      '<button class="modal-btn secondary" onclick="closeModal()">关闭</button>'
+    showModal('✅ 上传成功，等待审核',
+      '<p style="font-size:13px;color:#666;margin-bottom:10px;line-height:1.6">铃声「' + escapeHtml(rt.name) + '」上传成功！已自动提交给管理员审核。<br><br>管理员审核通过后，所有用户打开网站都能在「社区铃声」中看到并直接使用这个铃声！<br><br>你现在就可以在列表中点击「使用」按钮试听该铃声。</p>' +
+      '<button class="modal-btn" style="margin-top:10px" onclick="closeModal()">知道了</button>'
     );
   }
 
@@ -4035,7 +4038,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px;font-weight:600;">📥 用户上传待审核 (' + pendingServerRingtones.length + ')</div>';
       for (const item of pendingServerRingtones) {
         html += '<div class="review-item">';
-        html += '<img src="' + (item.cover_url || '') + '" alt="">';
+        html += '<img src="' + (item.cover_data || item.cover_url || '') + '" alt="">';
         html += '<div class="info"><div class="name">' + escapeHtml(item.name) + '</div>';
         html += '<div class="time">上传者: ' + escapeHtml(item.uploader_name || '匿名') + ' | ' + new Date(item.created_at).toLocaleString('zh-CN') + '</div></div>';
         html += '<div class="review-actions">';
@@ -4054,7 +4057,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     const item = pendingServerRingtones.find(r => r.id === id);
     if (!item) return;
     try {
-      const audio = new Audio(item.audio_url);
+      const audio = new Audio(item.audio_data || item.audio_url);
       audio.play();
     } catch(e) {
       alert('试听失败：' + e.message);
@@ -4211,10 +4214,26 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
   }
 
   function enterAdminMode() {
-    localStorage.setItem(ADMIN_STORAGE_KEY, '1');
-    isAdmin = true;
-    renderUserRingtones();
-    updateAdminUI();
+    const pwd = prompt('请输入管理员密码：');
+    if (!pwd) return;
+    // 验证密码（通过后端接口验证）
+    fetch('/api/ringtones/pending', {
+      headers: { 'X-Admin-Password': pwd }
+    }).then(res => {
+      if (res.status === 403) {
+        alert('密码错误！');
+        return;
+      }
+      localStorage.setItem(ADMIN_STORAGE_KEY, '1');
+      localStorage.setItem('admin_password', pwd);
+      isAdmin = true;
+      loadPendingServerRingtones();
+      renderUserRingtones();
+      updateAdminUI();
+      alert('✅ 管理员登录成功！');
+    }).catch(err => {
+      alert('验证失败：' + err.message);
+    });
   }
 
   function exitAdminMode() {
