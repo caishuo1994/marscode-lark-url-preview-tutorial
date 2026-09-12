@@ -1,7 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/ringtones", "destination": "/api/ringtones.py" },
-    { "source": "/api/ringtones/:path*", "destination": "/api/ringtones.py" },
-    { "source": "/:path*", "destination": "/api/index.py" }
+    { "source": "/((?!api/).*)", "destination": "/api/index.py" }
   ]
 }
