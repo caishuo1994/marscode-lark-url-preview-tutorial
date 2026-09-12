@@ -3,3 +3,5 @@ pillow
 requests
 python-dotenv
 cachetools
+supabase
+gunicorn
