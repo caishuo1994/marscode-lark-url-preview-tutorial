@@ -592,10 +592,10 @@ def lark_api_handler():
 @app.route('/alarm')
 def alarm_page():
     import os
+    # 强制只读取 api/alarm.html，避免读取到其他位置的旧版本
     possible_paths = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm.html'),
         '/var/task/api/alarm.html',
-        'api/alarm.html',
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm.html'),
     ]
     for path in possible_paths:
         if os.path.exists(path):
@@ -931,5 +931,6 @@ def catch_all(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
