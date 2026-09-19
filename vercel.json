@@ -1,1 +1,12 @@
-{"routes":[{"src":"/(.*)","dest":"/api/index.py"}]}
+{
+    "routes":  [
+                   {
+                       "src":  "/alarm",
+                       "dest":  "/alarm.html"
+                   },
+                   {
+                       "src":  "/(.*)",
+                       "dest":  "/api/index.py"
+                   }
+               ]
+}
