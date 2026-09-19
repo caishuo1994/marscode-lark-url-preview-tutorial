@@ -3687,6 +3687,19 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     submitBtn.textContent = '⏳ 上传中...';
     
     try {
+      // 检查数据大小
+      const audioSize = new Blob([pendingUserAudio]).size;
+      const imageSize = new Blob([pendingUserImage]).size;
+      const totalSize = audioSize + imageSize;
+      console.log('[Upload] 音频大小:', Math.round(audioSize/1024) + 'KB', '图片大小:', Math.round(imageSize/1024) + 'KB', '总计:', Math.round(totalSize/1024) + 'KB');
+      
+      if (totalSize > 4 * 1024 * 1024) {
+        alert('文件太大！总计 ' + Math.round(totalSize/1024/1024) + 'MB，超过 4MB 限制。请上传更小的音频文件。');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+      
       // 直接发送完整的 data URI（包含前缀）
       // 调用后端 API 上传
       const response = await fetch(API_BASE + '/upload', {
@@ -3701,6 +3714,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
       });
       
       const result = await response.json();
+      console.log('[Upload] 响应:', result);
       
       if (result.success) {
         // 同时保存到本地（方便立即试听）
