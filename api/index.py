@@ -711,13 +711,28 @@ def upload_ringtone():
         return jsonify({'error': '后端存储未配置'}), 500
     try:
         data = request.get_json()
+        # 调试：打印收到的所有字段
+        print('[Upload] 收到字段:', list(data.keys()))
+        print('[Upload] name 长度:', len(data.get('name', '')))
+        print('[Upload] audio_data 长度:', len(data.get('audio_data', '')))
+        print('[Upload] cover_data 长度:', len(data.get('cover_data', '')))
+        
         name = data.get('name', '').strip()
-        audio_data = data.get('audio_data', '')
-        cover_data = data.get('cover_data', '')
+        # 兼容多种字段名
+        audio_data = data.get('audio_data', '') or data.get('audio', '') or data.get('audio_url', '')
+        cover_data = data.get('cover_data', '') or data.get('cover', '') or data.get('cover_url', '')
         uploader_name = data.get('uploader_name', '匿名用户').strip()
         
         if not name or not audio_data or not cover_data:
-            return jsonify({'error': '铃声名称、音频和封面都不能为空'}), 400
+            return jsonify({
+                'error': '铃声名称、音频和封面都不能为空',
+                'debug': {
+                    'name_len': len(name),
+                    'audio_len': len(audio_data),
+                    'cover_len': len(cover_data),
+                    'fields': list(data.keys())
+                }
+            }), 400
         
         ringtone_id = str(uuid.uuid4())
         created_at = datetime.datetime.utcnow().isoformat()
@@ -916,4 +931,5 @@ def catch_all(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
