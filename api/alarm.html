@@ -3461,8 +3461,8 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
           id: 'srv_' + item.id,
           serverId: item.id,
           name: item.name,
-          audioSrc: item.audio_data || item.audio_url,
-          imageSrc: item.cover_data || item.cover_url || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIj7wn5C3PC90ZXh0Pjwvc3ZnPg==',
+          audioSrc: ensureDataUri(item.audio_data || item.audio_url, 'audio/mpeg'),
+          imageSrc: ensureDataUri(item.cover_data || item.cover_url, 'image/jpeg') || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIj7wn5C3PC90ZXh0Pjwvc3ZnPg==',
           uploaderName: item.uploader_name || '匿名用户',
           uploadTime: new Date(item.created_at).getTime(),
           status: 'approved',
@@ -3687,18 +3687,15 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     submitBtn.textContent = '⏳ 上传中...';
     
     try {
-      // 去掉 data URI 前缀，只保留 base64
-      const audioBase64 = pendingUserAudio.replace(/^data:audio\/[a-z0-9]+;base64,/, '');
-      const imageBase64 = pendingUserImage.replace(/^data:image\/[a-z0-9]+;base64,/, '');
-      
+      // 直接发送完整的 data URI（包含前缀）
       // 调用后端 API 上传
       const response = await fetch(API_BASE + '/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name,
-          audio_data: audioBase64,
-          cover_data: imageBase64,
+          audio_data: pendingUserAudio,
+          cover_data: pendingUserImage,
           uploader_name: '匿名用户'
         })
       });
@@ -4093,7 +4090,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px;font-weight:600;">📥 用户上传待审核 (' + pendingServerRingtones.length + ')</div>';
       for (const item of pendingServerRingtones) {
         html += '<div class="review-item">';
-        html += '<img src="' + (item.cover_data || item.cover_url || '') + '" alt="">';
+        html += '<img src="' + ensureDataUri(item.cover_data || item.cover_url, 'image/jpeg') + '" alt="">';
         html += '<div class="info"><div class="name">' + escapeHtml(item.name) + '</div>';
         html += '<div class="time">上传者: ' + escapeHtml(item.uploader_name || '匿名') + ' | ' + new Date(item.created_at).toLocaleString('zh-CN') + '</div></div>';
         html += '<div class="review-actions">';
@@ -4112,7 +4109,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
     const item = pendingServerRingtones.find(r => r.id === id);
     if (!item) return;
     try {
-      const audioSrc = item.audio_data || item.audio_url;
+      const audioSrc = ensureDataUri(item.audio_data || item.audio_url, 'audio/mpeg');
       if (!audioSrc) {
         alert('试听失败：音频数据为空');
         return;
