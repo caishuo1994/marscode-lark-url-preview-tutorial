@@ -595,28 +595,22 @@
           <div style="text-align:center;margin-top:8px;">
             <button onclick="enterAdminMode()" style="background:rgba(255,193,7,0.3);border:2px solid #ffc107;color:#ffc107;font-size:14px;cursor:pointer;padding:10px 20px;border-radius:8px;font-weight:bold;">⚙️ 管理员审核入口</button>
           </div>
-          
+          <div class="form-hint">必须同时上传音频（≤30秒，自动压缩为64kbps）和图片（自动压缩），上传后保存到本地，可立即使用</div>
         </div>
 
-
-
-        <!-- 申请分享说明 -->
-        <div class="submit-review-area" style="background:rgba(74,144,217,0.06);border:1px solid rgba(74,144,217,0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
-
-          <div style="font-size:12px;color:#666;line-height:1.7;">
-            1. 上传铃声后，系统会自动提交给管理员审核<br>
-            2. 管理员审核通过后，铃声会自动添加到上方「社区铃声」库中<br>
-            3. 其他人打开网站即可在「社区铃声」中看到并直接使用<br>
-            4. 所有铃声数据存储在云端，跨设备同步，刷新不丢失
-          </div>
-          <div class="admin-entry" style="text-align:center;margin-top:12px;">
-            <button onclick="enterAdminMode()" style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.5);color:#ffc107;font-size:13px;cursor:pointer;padding:8px 16px;border-radius:8px;margin:8px 0;">⚙️ 管理员审核入口</button>
-          </div>
-          <div id="adminReviewSection" style="display:none;margin-top:16px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;">
-            <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:10px;">🔧 管理员审核面板</div>
-            <div id="pendingReviewList" style="font-size:12px;color:#666;">加载中...</div>
-          </div>
+        <!-- 社区铃声库 -->
+        <div class="community-section" style="background:rgba(255,193,7,0.06);border:1px solid rgba(255,193,7,0.25);border-radius:12px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:8px;">🌟 社区铃声（管理员推荐，所有人可直接使用）</div>
+          <div id="communityRingtoneList" class="user-ringtone-list"></div>
         </div>
+
+          <div id="adminReviewSection" style="display:none;margin-top:16px;padding:16px;background:linear-gradient(135deg, rgba(255,193,7,0.1), rgba(255,152,0,0.05));border-radius:12px;border:1px solid rgba(255,193,7,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-size:15px;font-weight:600;color:#1a1a1a;">🔧 管理员审核面板</div>
+              <button onclick="exitAdminMode()" style="background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);color:#ff5252;font-size:12px;cursor:pointer;padding:6px 12px;border-radius:6px;">退出管理</button>
+            </div>
+            <div id="pendingReviewList" style="font-size:13px;color:#666;">加载中...</div>
+          </div>
 
         <div id="userRingtoneList" class="user-ringtone-list"></div>
       </div>
@@ -4367,6 +4361,7 @@ const DEFAULT_ULTRAMAN_AUDIO = "data:audio/mpeg;base64,SUQzBAAAAAABClRYWFgAAAASA
 </script>
 </body>
 </html>
+
 
 
 
