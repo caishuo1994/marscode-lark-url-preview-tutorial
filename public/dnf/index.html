@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNF 属性异常检测换算器</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<style>
+/* ========== 设计 Token ========== */
+:root {
+  --bg-deep: #0c0e14;
+  --bg-panel: #14171f;
+  --bg-card: #1a1e2a;
+  --bg-input: #10131a;
+  --bg-hover: #222738;
+  --border-gold: #b8941f;
+  --border-gold-light: #d4af37;
+  --border-subtle: #252a3a;
+  --text-primary: #e8eaf0;
+  --text-secondary: #9ba1b5;
+  --text-muted: #5f6577;
+  --gold: #d4af37;
+  --gold-light: #f0d060;
+  --phys: #5b9cf5;
+  --phys-bg: rgba(91,156,245,0.08);
+  --magic: #a78bfa;
+  --magic-bg: rgba(167,139,250,0.08);
+  --vit: #4ade80;
+  --spr: #38bdf8;
+  --str: #f87171;
+  --int: #fbbf24;
+  --normal: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --radius: 6px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(212,175,55,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(91,156,245,0.05) 0%, transparent 50%);
+}
+
+/* ========== 头部 ========== */
+.header {
+  text-align: center;
+  padding: 36px 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--gold-light);
+  text-shadow: 0 0 20px rgba(212,175,55,0.3);
+  margin-bottom: 8px;
+}
+.header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ========== 主体布局 ========== */
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ========== 卡片通用 ========== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.4), transparent);
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ========== 输入区 ========== */
+.input-group {
+  margin-bottom: 12px;
+}
+.input-group:last-child { margin-bottom: 0; }
+.input-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.input-label .hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.input-wrap {
+  position: relative;
+}
+.input-wrap input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.input-wrap input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212,175,55,0.15);
+}
+.input-wrap input::placeholder {
+  color: var(--text-muted);
+}
+.input-wrap .unit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* 属性色标签 */
+.attr-tag {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.attr-vit { background: var(--vit); }
+.attr-spr { background: var(--spr); }
+.attr-str { background: var(--str); }
+.attr-int { background: var(--int); }
+
+/* 双列输入 */
+.input-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 分区小标题 */
+.sub-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin: 14px 0 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.sub-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+/* ========== 结果区 ========== */
+.result-panel .card { margin-bottom: 16px; }
+
+/* 状态徽章 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.status-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status-normal {
+  background: rgba(74,222,128,0.12);
+  color: var(--normal);
+  border: 1px solid rgba(74,222,128,0.3);
+}
+.status-warning {
+  background: rgba(251,191,36,0.12);
+  color: var(--warning);
+  border: 1px solid rgba(251,191,36,0.3);
+}
+.status-danger {
+  background: rgba(248,113,113,0.12);
+  color: var(--danger);
+  border: 1px solid rgba(248,113,113,0.3);
+}
+
+/* 检测总览 */
+.anomaly-overview {
+  border-color: var(--border-gold);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(212,175,55,0.04) 100%);
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.overview-item {
+  text-align: center;
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+}
+.overview-item.phys { border-top: 2px solid var(--phys); }
+.overview-item.magic { border-top: 2px solid var(--magic); }
+.overview-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.overview-value {
+  font-size: 22px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+.overview-item.phys .overview-value { color: var(--phys); }
+.overview-item.magic .overview-value { color: var(--magic); }
+.overview-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 分析卡片 */
+.analysis-card.phys { border-left: 3px solid var(--phys); }
+.analysis-card.magic { border-left: 3px solid var(--magic); }
+
+.analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.analysis-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.analysis-card.phys .analysis-header h4 { color: var(--phys); }
+.analysis-card.magic .analysis-header h4 { color: var(--magic); }
+
+/* 数据对比行 */
+.compare-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.compare-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.compare-box .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.compare-box .value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.compare-box.theory .value { color: var(--text-secondary); }
+.compare-box.panel .value { color: var(--gold-light); }
+
+/* 偏差条 */
+.diff-bar-wrap {
+  margin: 12px 0;
+}
+.diff-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.diff-bar-label .diff-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.diff-bar {
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.diff-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.diff-bar-fill.positive { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+.diff-bar-fill.negative { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+.diff-bar-fill.normal { background: var(--normal); }
+
+/* 减伤率 */
+.reduction-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.reduction-item {
+  text-align: center;
+}
+.reduction-item .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.reduction-item .value {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.reduction-item .capped {
+  font-size: 10px;
+  color: var(--gold);
+  margin-left: 4px;
+}
+
+/* 异常原因 */
+.anomaly-reasons {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+.anomaly-reasons .reason-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.anomaly-reasons ul {
+  list-style: none;
+  padding: 0;
+}
+.anomaly-reasons li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  padding-left: 14px;
+  position: relative;
+}
+.anomaly-reasons li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.anomaly-reasons li.highlight {
+  color: var(--warning);
+  font-weight: 500;
+}
+
+/* ========== 公式速查 ========== */
+.formula-section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.formula-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.formula-item h5 {
+  font-size: 13px;
+  color: var(--gold);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.formula-item .formula {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  background: var(--bg-input);
+  padding: 6px 10px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  line-height: 1.8;
+  word-break: break-all;
+}
+.formula-item .note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.empty-state .big-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  opacity: 0.4;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+  .input-panel {
+    order: 1;
+  }
+  .result-panel {
+    order: 2;
+  }
+}
+@media (max-width: 600px) {
+  .header h1 { font-size: 22px; letter-spacing: 2px; }
+  .input-row-2 { grid-template-columns: 1fr; }
+  .compare-row { grid-template-columns: 1fr; }
+  .overview-grid { grid-template-columns: 1fr; }
+  .reduction-row { grid-template-columns: 1fr; gap: 8px; }
+  .card { padding: 14px 16px; }
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-gold); }
+</style>
+</head>
+<body>
+
+<!-- ========== 头部 ========== -->
+<header class="header">
+  <h1>DNF 属性异常检测换算器</h1>
+  <p>输入角色面板属性与装备基础数值，自动推算理论防御力并检测面板是否存在异常偏差。适用于核对账号数据、排查装备未生效、验证属性是否被篡改等场景。</p>
+</header>
+
+<!-- ========== 主体 ========== -->
+<div class="main">
+
+  <!-- ===== 左栏：数据录入 ===== -->
+  <section class="input-panel">
+
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        基础属性
+      </div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label">
+            <span><span class="attr-tag attr-vit"></span>体力</span>
+            <span class="hint">VIT</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="vitality" placeholder="例如 3000" min="0" step="1">
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">
+            <span><span class="attr-tag attr-spr"></span>精神</span>
+            <span class="hint">SPR</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="spirit" placeholder="例如 2800" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="sub-title">攻击力检测（可选）</div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label">
+            <span><span class="attr-tag attr-str"></span>力量</span>
+            <span class="hint">STR</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="strength" placeholder="选填" min="0" step="1">
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">
+            <span><span class="attr-tag attr-int"></span>智力</span>
+            <span class="hint">INT</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="intelligence" placeholder="选填" min="0" step="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        防御数据录入
+      </div>
+      <div class="sub-title">装备基础防御力（不含强化/增幅）</div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label">
+            <span style="color:var(--phys)">装备物理防御力</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="equipPhysDef" placeholder="装备基础物防" min="0" step="1">
+            <span class="unit">点</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">
+            <span style="color:var(--magic)">装备魔法防御力</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="equipMagDef" placeholder="装备基础魔防" min="0" step="1">
+            <span class="unit">点</span>
+          </div>
+        </div>
+      </div>
+      <div class="sub-title">角色面板实际防御力</div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label">
+            <span style="color:var(--phys)">面板物理防御力</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="panelPhysDef" placeholder="实际看到的物防" min="0" step="1">
+            <span class="unit">点</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">
+            <span style="color:var(--magic)">面板魔法防御力</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="panelMagDef" placeholder="实际看到的魔防" min="0" step="1">
+            <span class="unit">点</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.6;">
+        提示：「装备基础防御力」指装备详情页显示的原始防御力数值，不含强化、增幅、徽章、附魔、宠物、称号等额外加成。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        攻击力检测（可选）
+      </div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label"><span>武器基础物攻</span></div>
+          <div class="input-wrap">
+            <input type="number" id="weaponPhysAtk" placeholder="选填" min="0" step="1">
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"><span>武器基础魔攻</span></div>
+          <div class="input-wrap">
+            <input type="number" id="weaponMagAtk" placeholder="选填" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="input-row-2">
+        <div class="input-group">
+          <div class="input-label"><span>武器精通系数</span><span class="hint">%</span></div>
+          <div class="input-wrap">
+            <input type="number" id="weaponMastery" placeholder="默认0" min="0" step="0.1">
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"><span>无视攻击力</span></div>
+          <div class="input-wrap">
+            <input type="number" id="ignoreDef" placeholder="强化无视" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="input-row-2" style="margin-top:8px;">
+        <div class="input-group">
+          <div class="input-label"><span>面板物理攻击力</span></div>
+          <div class="input-wrap">
+            <input type="number" id="panelPhysAtk" placeholder="选填，用于对比" min="0" step="1">
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"><span>面板魔法攻击力</span></div>
+          <div class="input-wrap">
+            <input type="number" id="panelMagAtk" placeholder="选填，用于对比" min="0" step="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== 右栏：结果与检测 ===== -->
+  <section class="result-panel" id="resultPanel">
+
+    <!-- 空状态 -->
+    <div class="card empty-state" id="emptyState">
+      <div class="big-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <p>请在左侧输入角色属性数据<br>检测结果将实时显示在这里</p>
+    </div>
+
+    <!-- 检测总览 -->
+    <div class="card anomaly-overview" id="overviewCard" style="display:none;">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        异常检测总览
+      </div>
+      <div class="overview-grid">
+        <div class="overview-item phys">
+          <div class="overview-label">物理防御</div>
+          <div class="overview-value" id="ovPhysStatus">--</div>
+          <div class="overview-sub" id="ovPhysDiff">偏差 --</div>
+        </div>
+        <div class="overview-item magic">
+          <div class="overview-label">魔法防御</div>
+          <div class="overview-value" id="ovMagicStatus">--</div>
+          <div class="overview-sub" id="ovMagicDiff">偏差 --</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 物理防御分析 -->
+    <div class="card analysis-card phys" id="physCard" style="display:none;">
+      <div class="analysis-header">
+        <h4>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          物理防御分析
+        </h4>
+        <span class="status-badge status-normal" id="physBadge">
+          <span class="dot"></span><span id="physBadgeText">正常</span>
+        </span>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-box theory">
+          <div class="label">理论物理防御力</div>
+          <div class="value" id="theoryPhysDef">0</div>
+        </div>
+        <div class="compare-box panel">
+          <div class="label">面板物理防御力</div>
+          <div class="value" id="panelPhysDefVal">0</div>
+        </div>
+      </div>
+
+      <div class="diff-bar-wrap">
+        <div class="diff-bar-label">
+          <span>偏差值 / 偏差率</span>
+          <span class="diff-num" id="physDiffNum">+0 (0.00%)</span>
+        </div>
+        <div class="diff-bar">
+          <div class="diff-bar-fill normal" id="physDiffBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="reduction-row">
+        <div class="reduction-item">
+          <div class="label">理论减伤率</div>
+          <div class="value" id="theoryPhysReduction">0.00%</div>
+        </div>
+        <div class="reduction-item">
+          <div class="label">面板减伤率</div>
+          <div class="value" id="panelPhysReduction">0.00%<span class="capped" id="physCapped" style="display:none;">已封顶</span></div>
+        </div>
+      </div>
+
+      <div class="anomaly-reasons" id="physReasons" style="display:none;">
+        <div class="reason-title">差额来源排查（面板 - 理论 = 额外加成总和）</div>
+        <ul id="physReasonList"></ul>
+      </div>
+    </div>
+
+    <!-- 魔法防御分析 -->
+    <div class="card analysis-card magic" id="magicCard" style="display:none;">
+      <div class="analysis-header">
+        <h4>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          魔法防御分析
+        </h4>
+        <span class="status-badge status-normal" id="magicBadge">
+          <span class="dot"></span><span id="magicBadgeText">正常</span>
+        </span>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-box theory">
+          <div class="label">理论魔法防御力</div>
+          <div class="value" id="theoryMagDef">0</div>
+        </div>
+        <div class="compare-box panel">
+          <div class="label">面板魔法防御力</div>
+          <div class="value" id="panelMagDefVal">0</div>
+        </div>
+      </div>
+
+      <div class="diff-bar-wrap">
+        <div class="diff-bar-label">
+          <span>偏差值 / 偏差率</span>
+          <span class="diff-num" id="magicDiffNum">+0 (0.00%)</span>
+        </div>
+        <div class="diff-bar">
+          <div class="diff-bar-fill normal" id="magicDiffBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="reduction-row">
+        <div class="reduction-item">
+          <div class="label">理论减伤率</div>
+          <div class="value" id="theoryMagicReduction">0.00%</div>
+        </div>
+        <div class="reduction-item">
+          <div class="label">面板减伤率</div>
+          <div class="value" id="panelMagicReduction">0.00%<span class="capped" id="magicCapped" style="display:none;">已封顶</span></div>
+        </div>
+      </div>
+
+      <div class="anomaly-reasons" id="magicReasons" style="display:none;">
+        <div class="reason-title">差额来源排查（面板 - 理论 = 额外加成总和）</div>
+        <ul id="magicReasonList"></ul>
+      </div>
+    </div>
+
+    <!-- 攻击力分析 -->
+    <div class="card analysis-card" id="atkCard" style="display:none; border-left: 3px solid var(--str);">
+      <div class="analysis-header">
+        <h4 style="color:var(--str);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          攻击力分析
+        </h4>
+      </div>
+      <div class="compare-row" id="atkCompareRow">
+        <div class="compare-box theory">
+          <div class="label">理论物理攻击力</div>
+          <div class="value" id="theoryPhysAtk">--</div>
+        </div>
+        <div class="compare-box panel">
+          <div class="label">面板物理攻击力</div>
+          <div class="value" id="panelPhysAtkVal">--</div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-box theory">
+          <div class="label">理论魔法攻击力</div>
+          <div class="value" id="theoryMagAtk">--</div>
+        </div>
+        <div class="compare-box panel">
+          <div class="label">面板魔法攻击力</div>
+          <div class="value" id="panelMagAtkVal">--</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);">
+        攻击力公式：面板 = (属性/250 + 1) × 武器基础攻击 × (1 + 精通%) + 无视攻击。未输入对应属性时不显示。
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- ========== 公式速查 ========== -->
+<section class="formula-section">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      DNF 端游属性公式速查表
+    </div>
+    <div class="formula-grid">
+      <div class="formula-item">
+        <h5>防御力换算</h5>
+        <div class="formula">物理防御 = 体力 × 5 + 装备物防<br>魔法防御 = 精神 × 5 + 装备魔防</div>
+        <div class="note">1点体力 = 5点物防，1点精神 = 5点魔防，恒定系数。</div>
+      </div>
+      <div class="formula-item">
+        <h5>减伤率计算</h5>
+        <div class="formula">减伤率 = 防御力 ÷ (防御力 + 100000)<br>上限 75%（30万防御封顶）</div>
+        <div class="note">防御力达到30万时减伤率即达75%上限，继续堆防御不再提升A类减伤。</div>
+      </div>
+      <div class="formula-item">
+        <h5>物理/魔法攻击力</h5>
+        <div class="formula">物攻 = (力量/250+1) × 武器物攻 × (1+精通) + 无视<br>魔攻 = (智力/250+1) × 武器魔攻 × (1+精通) + 无视</div>
+        <div class="note">百分比职业面板公式。固伤职业吃独立攻击力，公式类似但基数为独立攻击。</div>
+      </div>
+      <div class="formula-item">
+        <h5>HP / MP 上限</h5>
+        <div class="formula">实际HP = 基础HP × (1 + 体力/250)<br>实际MP = 基础MP × (1 + 精神/250)</div>
+        <div class="note">每250点体力使HP上限翻倍，每250点精神使MP上限翻倍。HP/MP恢复量同理受体精影响。</div>
+      </div>
+      <div class="formula-item">
+        <h5>属性强化</h5>
+        <div class="formula">属强提升 = 1.05 + 属强 × 0.45%<br>实际 = (属强 - 敌方属抗) 代入计算</div>
+        <div class="note">需拥有对应属性攻击才能触发。多属性攻击取最高属强。旧版本公式为每22点属强+10%伤害（递减）。</div>
+      </div>
+      <div class="formula-item">
+        <h5>独立攻击力（固伤）</h5>
+        <div class="formula">固伤 = 技能独立 × (力量或智力/250 + 1) × 其他加成</div>
+        <div class="note">固伤技能不吃武器基础攻击力，吃独立攻击力和力量/智力。锻造提升独立攻击。</div>
+      </div>
+      <div class="formula-item">
+        <h5>属性提升率（通用）</h5>
+        <div class="formula">力量/智力提升率 = Δ ÷ (当前 + 250)<br>属强提升率 = Δ ÷ (当前 + 220)<br>体力HP提升率 = Δ ÷ (当前 + 250)</div>
+        <div class="note">用于计算打造收益。边际递减：基数越高，同样数值的提升率越低。</div>
+      </div>
+      <div class="formula-item">
+        <h5>减伤类型说明</h5>
+        <div class="formula">A类减伤 = 防御力减伤（本工具检测项）<br>B类减伤 = 技能/装备减伤<br>总减伤 = A类 × B类，共享75%上限</div>
+        <div class="note">防御力只是A类减伤的中间值。实际承伤还受技能减伤、装备减伤等B类影响，两者乘算。</div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:11px;color:var(--text-muted);padding:10px 0;">
+    公式基于 DNF 端游当前主流版本整理，部分老版本或特殊职业可能存在差异。如有出入以游戏内实际为准。
+  </div>
+</section>
+
+<script>
+// ========== 状态与工具 ==========
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+const fmtPct = n => (n * 100).toFixed(2) + '%';
+
+function getVal(id) {
+  const v = parseFloat($(id).value);
+  return isNaN(v) ? 0 : v;
+}
+function hasVal(id) {
+  return $(id).value.trim() !== '' && !isNaN(parseFloat($(id).value));
+}
+
+// ========== 核心计算 ==========
+function calcDefense(vit, spr, equipPhys, equipMag, panelPhys, panelMag) {
+  const theoryPhys = vit * 5 + equipPhys;
+  const theoryMag = spr * 5 + equipMag;
+
+  const physDiff = panelPhys - theoryPhys;
+  const magDiff = panelMag - theoryMag;
+
+  const physDiffRate = theoryPhys > 0 ? physDiff / theoryPhys : 0;
+  const magDiffRate = theoryMag > 0 ? magDiff / theoryMag : 0;
+
+  const theoryPhysRed = Math.min(theoryPhys / (theoryPhys + 100000), 0.75);
+  const theoryMagRed = Math.min(theoryMag / (theoryMag + 100000), 0.75);
+  const panelPhysRed = Math.min(panelPhys / (panelPhys + 100000), 0.75);
+  const panelMagRed = Math.min(panelMag / (panelMag + 100000), 0.75);
+
+  return {
+    theoryPhys, theoryMag,
+    physDiff, magDiff,
+    physDiffRate, magDiffRate,
+    theoryPhysRed, theoryMagRed,
+    panelPhysRed, panelMagRed,
+    physCapped: panelPhys >= 300000,
+    magCapped: panelMag >= 300000
+  };
+}
+
+function getStatus(diffRate) {
+  const abs = Math.abs(diffRate);
+  if (abs <= 0.05) return { level: 'normal', text: '正常', desc: '偏差在±5%以内，数据吻合' };
+  if (abs <= 0.20) return { level: 'warning', text: '轻微偏差', desc: '存在小额额外加成，建议核对' };
+  return { level: 'danger', text: '明显异常', desc: '偏差超过20%，需重点排查' };
+}
+
+function getReasons(diff, diffRate, type) {
+  const reasons = [];
+  if (diff > 0) {
+    reasons.push({ text: '装备强化/增幅提供的额外防御力（高强化装备加成显著）', highlight: diffRate > 0.15 });
+    reasons.push({ text: '徽章、附魔、守护珠等细节打造提供的防御加成' });
+    reasons.push({ text: '宠物、宠物装备、称号、称号宝珠提供的防御属性' });
+    reasons.push({ text: '公会属性、守护精灵、冒险团等账号级防御加成' });
+    reasons.push({ text: '被动技能加成（如钢筋铁骨、防具精通、职业被动等）' });
+    reasons.push({ text: '进图buff（奶爸/奶妈体精buff、装备触发buff等）' });
+    if (type === 'phys') {
+      reasons.push({ text: '皮肤装扮的物理防御力加成' });
+    }
+  } else if (diff < 0) {
+    reasons.push({ text: '面板低于理论值，可能是数据录入错误，请核对输入数值', highlight: true });
+    reasons.push({ text: '装备未穿戴或耐久度为0（装备失效时防御不生效）' });
+    reasons.push({ text: 'buff已过期或处于特殊状态（如死亡复活后buff重置）' });
+    reasons.push({ text: '装备基础防御力填写有误（可能误填了含强化的面板值）' });
+  }
+  return reasons;
+}
+
+// ========== 攻击力计算 ==========
+function calcAttack(stat, weaponAtk, mastery, ignore) {
+  if (!stat || !weaponAtk) return null;
+  const m = mastery / 100;
+  return (stat / 250 + 1) * weaponAtk * (1 + m) + (ignore || 0);
+}
+
+// ========== UI 渲染 ==========
+function render() {
+  const vit = getVal('vitality');
+  const spr = getVal('spirit');
+  const equipPhys = getVal('equipPhysDef');
+  const equipMag = getVal('equipMagDef');
+  const panelPhys = getVal('panelPhysDef');
+  const panelMag = getVal('panelMagDef');
+
+  const hasDefInput = (vit > 0 || spr > 0 || equipPhys > 0 || equipMag > 0 || panelPhys > 0 || panelMag > 0);
+
+  if (!hasDefInput) {
+    $('emptyState').style.display = '';
+    $('overviewCard').style.display = 'none';
+    $('physCard').style.display = 'none';
+    $('magicCard').style.display = 'none';
+    $('atkCard').style.display = 'none';
+    return;
+  }
+
+  $('emptyState').style.display = 'none';
+
+  const r = calcDefense(vit, spr, equipPhys, equipMag, panelPhys, panelMag);
+
+  // --- 总览 ---
+  const physStatus = getStatus(r.physDiffRate);
+  const magStatus = getStatus(r.magDiffRate);
+
+  const showPhys = vit > 0 || equipPhys > 0 || panelPhys > 0;
+  const showMagic = spr > 0 || equipMag > 0 || panelMag > 0;
+
+  if (showPhys || showMagic) {
+    $('overviewCard').style.display = '';
+    document.querySelector('.overview-grid').style.gridTemplateColumns =
+      (showPhys && showMagic) ? '1fr 1fr' : '1fr';
+  } else {
+    $('overviewCard').style.display = 'none';
+  }
+
+  if (showPhys) {
+    $('ovPhysStatus').textContent = physStatus.text;
+    $('ovPhysStatus').style.color = physStatus.level === 'normal' ? 'var(--normal)' :
+      physStatus.level === 'warning' ? 'var(--warning)' : 'var(--danger)';
+    $('ovPhysDiff').textContent = '偏差 ' + (r.physDiff >= 0 ? '+' : '') + fmt(r.physDiff) +
+      ' (' + (r.physDiffRate * 100).toFixed(1) + '%)';
+  }
+  document.querySelector('.overview-item.phys').style.display = showPhys ? '' : 'none';
+
+  if (showMagic) {
+    $('ovMagicStatus').textContent = magStatus.text;
+    $('ovMagicStatus').style.color = magStatus.level === 'normal' ? 'var(--normal)' :
+      magStatus.level === 'warning' ? 'var(--warning)' : 'var(--danger)';
+    $('ovMagicDiff').textContent = '偏差 ' + (r.magDiff >= 0 ? '+' : '') + fmt(r.magDiff) +
+      ' (' + (r.magDiffRate * 100).toFixed(1) + '%)';
+  }
+  document.querySelector('.overview-item.magic').style.display = showMagic ? '' : 'none';
+
+  // --- 物理防御分析 ---
+  if (showPhys) {
+    $('physCard').style.display = '';
+    $('theoryPhysDef').textContent = fmt(r.theoryPhys);
+    $('panelPhysDefVal').textContent = fmt(panelPhys);
+
+    const sign = r.physDiff >= 0 ? '+' : '';
+    $('physDiffNum').textContent = sign + fmt(r.physDiff) + ' (' + (r.physDiffRate * 100).toFixed(2) + '%)';
+    $('physDiffNum').style.color = Math.abs(r.physDiffRate) <= 0.05 ? 'var(--normal)' :
+      r.physDiff > 0 ? 'var(--warning)' : 'var(--danger)';
+
+    const barWidth = Math.min(Math.abs(r.physDiffRate) * 100 * 3, 100);
+    const bar = $('physDiffBar');
+    bar.style.width = barWidth + '%';
+    bar.className = 'diff-bar-fill ' + (Math.abs(r.physDiffRate) <= 0.05 ? 'normal' :
+      r.physDiff > 0 ? 'positive' : 'negative');
+
+    $('theoryPhysReduction').textContent = fmtPct(r.theoryPhysRed);
+    $('panelPhysReduction').textContent = fmtPct(r.panelPhysRed);
+    $('physCapped').style.display = r.physCapped ? '' : 'none';
+
+    // 状态徽章
+    const badge = $('physBadge');
+    badge.className = 'status-badge status-' + physStatus.level;
+    $('physBadgeText').textContent = physStatus.text;
+
+    // 异常原因
+    if (Math.abs(r.physDiffRate) > 0.05 && panelPhys > 0 && (vit > 0 || equipPhys > 0)) {
+      $('physReasons').style.display = '';
+      const list = $('physReasonList');
+      list.innerHTML = '';
+      getReasons(r.physDiff, r.physDiffRate, 'phys').forEach(reason => {
+        const li = document.createElement('li');
+        li.textContent = reason.text;
+        if (reason.highlight) li.className = 'highlight';
+        list.appendChild(li);
+      });
+    } else {
+      $('physReasons').style.display = 'none';
+    }
+  } else {
+    $('physCard').style.display = 'none';
+  }
+
+  // --- 魔法防御分析 ---
+  if (showMagic) {
+    $('magicCard').style.display = '';
+    $('theoryMagDef').textContent = fmt(r.theoryMag);
+    $('panelMagDefVal').textContent = fmt(panelMag);
+
+    const sign = r.magDiff >= 0 ? '+' : '';
+    $('magicDiffNum').textContent = sign + fmt(r.magDiff) + ' (' + (r.magDiffRate * 100).toFixed(2) + '%)';
+    $('magicDiffNum').style.color = Math.abs(r.magDiffRate) <= 0.05 ? 'var(--normal)' :
+      r.magDiff > 0 ? 'var(--warning)' : 'var(--danger)';
+
+    const barWidth = Math.min(Math.abs(r.magDiffRate) * 100 * 3, 100);
+    const bar = $('magicDiffBar');
+    bar.style.width = barWidth + '%';
+    bar.className = 'diff-bar-fill ' + (Math.abs(r.magDiffRate) <= 0.05 ? 'normal' :
+      r.magDiff > 0 ? 'positive' : 'negative');
+
+    $('theoryMagicReduction').textContent = fmtPct(r.theoryMagRed);
+    $('panelMagicReduction').textContent = fmtPct(r.panelMagRed);
+    $('magicCapped').style.display = r.magCapped ? '' : 'none';
+
+    const badge = $('magicBadge');
+    badge.className = 'status-badge status-' + magStatus.level;
+    $('magicBadgeText').textContent = magStatus.text;
+
+    if (Math.abs(r.magDiffRate) > 0.05 && panelMag > 0 && (spr > 0 || equipMag > 0)) {
+      $('magicReasons').style.display = '';
+      const list = $('magicReasonList');
+      list.innerHTML = '';
+      getReasons(r.magDiff, r.magDiffRate, 'magic').forEach(reason => {
+        const li = document.createElement('li');
+        li.textContent = reason.text;
+        if (reason.highlight) li.className = 'highlight';
+        list.appendChild(li);
+      });
+    } else {
+      $('magicReasons').style.display = 'none';
+    }
+  } else {
+    $('magicCard').style.display = 'none';
+  }
+
+  // --- 攻击力分析 ---
+  const str = getVal('strength');
+  const intl = getVal('intelligence');
+  const weaponPhys = getVal('weaponPhysAtk');
+  const weaponMag = getVal('weaponMagAtk');
+  const mastery = getVal('weaponMastery');
+  const ignore = getVal('ignoreDef');
+  const panelPhysAtk = getVal('panelPhysAtk');
+  const panelMagAtk = getVal('panelMagAtk');
+
+  const theoryPhysAtk = calcAttack(str, weaponPhys, mastery, ignore);
+  const theoryMagAtk = calcAttack(intl, weaponMag, mastery, ignore);
+
+  const showAtk = theoryPhysAtk !== null || theoryMagAtk !== null || panelPhysAtk > 0 || panelMagAtk > 0;
+
+  if (showAtk) {
+    $('atkCard').style.display = '';
+    $('theoryPhysAtk').textContent = theoryPhysAtk !== null ? fmt(theoryPhysAtk) : '--';
+    $('panelPhysAtkVal').textContent = panelPhysAtk > 0 ? fmt(panelPhysAtk) : '--';
+    $('theoryMagAtk').textContent = theoryMagAtk !== null ? fmt(theoryMagAtk) : '--';
+    $('panelMagAtkVal').textContent = panelMagAtk > 0 ? fmt(panelMagAtk) : '--';
+  } else {
+    $('atkCard').style.display = 'none';
+  }
+}
+
+// ========== 事件绑定 ==========
+const inputIds = ['vitality','spirit','strength','intelligence',
+  'equipPhysDef','equipMagDef','panelPhysDef','panelMagDef',
+  'weaponPhysAtk','weaponMagAtk','weaponMastery','ignoreDef',
+  'panelPhysAtk','panelMagAtk'];
+
+inputIds.forEach(id => {
+  $(id).addEventListener('input', render);
+});
+
+// 初始化
+render();
+</script>
+</body>
+</html>
