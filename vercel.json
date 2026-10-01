@@ -5,6 +5,14 @@
                        "dest":  "/alarm.html"
                    },
                    {
+                       "src":  "/dnf",
+                       "dest":  "/dnf/index.html"
+                   },
+                   {
+                       "src":  "/dnf-gear",
+                       "dest":  "/dnf-gear/index.html"
+                   },
+                   {
                        "src":  "/(.*)",
                        "dest":  "/api/index.py"
                    }
