@@ -311,6 +311,21 @@ HOME_PAGE_HTML = """<!DOCTYPE html>
             <span class="alarm-btn">立即使用 →</span>
         </a>
 
+        <!-- DNF 工具区 -->
+        <h2 class="section-title" style="margin-top:10px;">🎮 DNF 工具集</h2>
+        <div class="features-grid" style="margin-bottom:40px;">
+            <a href="/dnf" class="feature-card" style="animation-delay: 0.1s">
+                <div class="feature-icon">🔢</div>
+                <h3>属性异常检测换算器</h3>
+                <p>检测属性异常 · 物理/魔法防御换算 · 攻击力分析</p>
+            </a>
+            <a href="/dnf-gear" class="feature-card" style="animation-delay: 0.2s">
+                <div class="feature-icon">⚔️</div>
+                <h3>装备真伪核验台</h3>
+                <p>全版本装备资料库 · 装备名称查询核验</p>
+            </a>
+        </div>
+
         <!-- 飞书个性签名功能 -->
         <h2 class="section-title">🎯 飞书动态个性签名</h2>
         <div class="features-grid">
